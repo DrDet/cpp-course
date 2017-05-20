@@ -3,36 +3,36 @@
                 global          _start
 _start:
 
-                sub             rsp, 4 * 128 * 8
-                lea             rdi, [rsp + 3 * 128 * 8]
-                mov             rcx, 128
-                call            read_long
+	sub	rsp, 4 * 128 * 8
+	lea	rdi, [rsp + 3 * 128 * 8]
+	mov	rcx, 128
+	call	read_long
 	lea	rdi, [rsp + 2 * 128 * 8]
-                call            read_long
-                lea             rsi, [rsp + 3 * 128 * 8]
+	call	read_long
+	lea	rsi, [rsp + 3 * 128 * 8]
 	lea	rbx, [rsp + 2 * 128 * 8]
 	
 	mov	rdi, rsp
 	mov	rcx, 2 * 128
 	call	set_zero
 	
-                call            mul_long_long
+	call	mul_long_long
 
-                call            write_long
+	call	write_long
 
-                mov             al, 0x0a
-                call            write_char
+	mov	al, 0x0a
+	call	write_char
 
-                jmp             exit
+	jmp	exit
 	
 ; multiplication of two long numbers
 ; rsi -- #1
 ; rbx -- #2
 ; rdi -- result
 mul_long_long:
-                push            rsi
-                push            rbx
-	push            rcx	
+	push	rsi
+	push	rbx
+	push	rcx	
 	clc
 	
 	mov	r8, 0 			;set counter for an outside cycle .. rsi
@@ -41,7 +41,7 @@ mul_long_long:
 	mov	r9, 0 			;set counter for an inside cycle .. rbx
 .loop2:
 ;{
-	mov	rax, [rsi + 8 * r8]     		;rax <- rsi[i]
+	mov	rax, [rsi + 8 * r8]		;rax <- rsi[i]
 	mov	rdx, [rbx + 8 * r9]		;rdx <- rbx[j]
 	mul	rdx			;rdx:rax = rsi[i] * rbx[j]
 	lea	r10, [r8 + r9]			;r10 = i+j
@@ -65,10 +65,10 @@ mul_long_long:
 	jnz	.loop1
 	;} end of outside_loop
 	
-                pop             rcx
-                pop             rbx
-                pop             rsi
-                ret
+	pop	rcx
+	pop	rbx
+	pop	rsi
+	ret
 	
 ;pushes carry in r15
 ;    from idx in r10 to the end
