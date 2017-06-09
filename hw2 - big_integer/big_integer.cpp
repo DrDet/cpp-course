@@ -98,7 +98,7 @@ big_integer &big_integer::operator/=(const big_integer &rhs) {
     size_t dividend_len = remainder.length();
     for (size_t i = pref_len; i <= dividend_len; ++i) {
         uit quotient_digit = trial(remainder, divisor);
-        big_integer qd;
+        static big_integer qd;
         while (!prefix_compare(remainder, qd = mul_long_short(divisor, quotient_digit), pref_len))
             quotient_digit--;
         quotient.push_back(quotient_digit);
@@ -106,7 +106,6 @@ big_integer &big_integer::operator/=(const big_integer &rhs) {
         if (remainder.value.back() == 0)
             remainder.value.pop_back();
     }
-
     for (size_t i = quotient.size(); i--;)
         res.value.push_back(quotient[i]);
 
@@ -116,7 +115,7 @@ big_integer &big_integer::operator/=(const big_integer &rhs) {
 }
 
 ///for long division:
-big_integer big_integer::mul_long_short(big_integer const & a, uit const q_k) {
+inline big_integer big_integer::mul_long_short(big_integer const & a, uit const q_k) {
     big_integer res;
     if (q_k == 0)
         return res;
@@ -125,13 +124,13 @@ big_integer big_integer::mul_long_short(big_integer const & a, uit const q_k) {
         uint64_t mul = uint64_t(a[i]) * q_k,
                 buf = (mul & UINT32_MAX) + res[i];
         res[i] = buf;
-        res[i + 1] += uint64_t((mul >> 31 >> 1)) + (buf >> 31 >> 1);
+        res[i + 1] += (mul >> 31 >> 1) + (buf >> 31 >> 1);
     }
     res.normalise();
     return res;
 }
 
-bool big_integer::prefix_compare(big_integer const & r, big_integer const & qd, size_t const pref_len) {
+inline bool big_integer::prefix_compare(big_integer const & r, big_integer const & qd, size_t const pref_len) {
     size_t start = r.length() - pref_len;
     for (int i = static_cast<int>(r.length() - 1), j = static_cast<int>(pref_len - 1); i >= start && j >= 0; --i, --j) {
         uit qd_digit = (j < qd.length() ? qd[j] : 0);
@@ -141,7 +140,7 @@ bool big_integer::prefix_compare(big_integer const & r, big_integer const & qd, 
     return true;
 }
 
-void big_integer::prefix_sub(big_integer & r, big_integer const &qd, size_t const pref_len) { //pref_len = m + 1, m - size of divisor
+inline void big_integer::prefix_sub(big_integer & r, big_integer const &qd, size_t const pref_len) { //pref_len = m + 1, m - size of divisor
     size_t start = r.length() - pref_len;
     bool borrow = false;
     for (size_t i = 0; i < pref_len; ++i) {
@@ -152,7 +151,7 @@ void big_integer::prefix_sub(big_integer & r, big_integer const &qd, size_t cons
     }
 }
 
-uit big_integer::trial(big_integer const & remainder, big_integer const & divisor) {
+inline uit big_integer::trial(big_integer const & remainder, big_integer const & divisor) {
     uint64_t a = (static_cast<uint64_t>(remainder.value.back()) << 31 << 1) | remainder[remainder.length() - 2];
     return std::min(static_cast<uit>(a / divisor.value.back()), UINT32_MAX);
 }
