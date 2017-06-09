@@ -31,6 +31,9 @@ private:
     static void prefix_sub(big_integer & r, big_integer const & qd, size_t const pref_len);
     static uit trial(big_integer const & remainder, big_integer const & divisor);
     ///~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    static uit to_uint32(big_integer const & a);
+
 public:
     big_integer();
     big_integer(big_integer const& other);
@@ -44,7 +47,7 @@ public:
     big_integer& operator-=(big_integer const& rhs);
     big_integer& operator*=(big_integer const& rhs);
     big_integer& operator/=(big_integer const& rhs);
-    big_integer& operator%=(big_integer const& rhs);                //todo
+    big_integer& operator%=(big_integer const& rhs);
 
     big_integer& operator&=(big_integer const& rhs);
     big_integer& operator|=(big_integer const& rhs);

@@ -1,5 +1,6 @@
 #include "big_integer.h"
 #include <stdexcept>
+#include <algorithm>
 
 big_integer::big_integer() : sign(false) {
 
@@ -111,7 +112,7 @@ big_integer &big_integer::operator/=(const big_integer &rhs) {
 }
 
 big_integer &big_integer::operator%=(const big_integer &rhs) {
-    return *this;
+    return *this = big_integer(*this - *this / rhs * rhs);
 }
 
 big_integer& big_integer::operator&=(big_integer const& rhs)
@@ -393,6 +394,12 @@ uit big_integer::trial(big_integer const & remainder, big_integer const & diviso
     uint64_t a = (static_cast<uint64_t>(remainder.value.back()) << 31 << 1) | remainder[remainder.length() - 2];
     return std::min(static_cast<uit>(a / divisor.value.back()), UINT32_MAX);
 }
+
+uit big_integer::to_uint32(big_integer const & a) {
+    if (a.is_zero())
+        return 0;
+    return a.value[0];
+}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 big_integer operator+(big_integer a, big_integer const& b)
@@ -477,18 +484,14 @@ bool operator>=(big_integer const& a, big_integer const& b)
 
 std::string to_string(big_integer const& a)
 {
-//    char* tmp = mpz_get_str(NULL, 10, a.mpz);
-    std::string res;// = tmp;
-
-//    void (*freefunc)(void*, size_t);
-//    mp_get_memory_functions (NULL, NULL, &freefunc);
-//
-//    freefunc(tmp, strlen(tmp) + 1);
-
+    big_integer temp(a);
+    std::string res;
+    while (!temp.is_zero()) {
+        res.push_back(static_cast<char>(big_integer::to_uint32(temp % 10) + '0'));
+        temp /= 10;
+    }
+    if (a.sign)
+        res.push_back('-');
+   std::reverse(res.begin(), res.end());
     return res;
 }
-//
-//void swap(big_integer& a, big_integer& b) {
-//    std::swap(a.value, b.value);
-//    std::swap(a.sign, b.sign);
-//}
