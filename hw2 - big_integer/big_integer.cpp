@@ -58,22 +58,20 @@ big_integer &big_integer::operator*=(const big_integer &rhs) {
     if (is_zero() || rhs.is_zero()) {
         return *this = res;
     }
-    big_integer l(*this);
-    big_integer r(rhs);
-    size_t len = std::max(l.length(), r.length());
+    size_t len = std::max(length(), rhs.length());
     res.value.resize(2*len);
-    for (size_t i = 0; i < l.length(); ++i) {
+    for (size_t i = 0; i < length(); ++i) {
         uint64_t carry = 0;
-        for (size_t j = 0; j < r.length(); ++j) {
-            uint64_t mul = uint64_t(l[i]) * r[j],
+        for (size_t j = 0; j < rhs.length(); ++j) {
+            uint64_t mul = uint64_t((*this)[i]) * rhs[j],
                      buf = (mul & UINT32_MAX) + carry + res[i+j];
             res[i + j] = buf;
             carry = (mul >> 31 >> 1) + (buf >> 31 >> 1);
         }
         if (carry)
-            res[i + r.length()] += carry;
+            res[i + rhs.length()] += carry;
     }
-    res.sign = l.sign | r.sign;
+    res.sign = sign ^ rhs.sign;
     res.normalise();
     return *this = res;
 }
@@ -89,6 +87,12 @@ big_integer &big_integer::operator/=(const big_integer &rhs) {
     big_integer divisor(rhs);
     vector<uit> quotient;
 
+    //normalisation
+    uint32_t const k = static_cast<uint32_t>((UINT32_MAX + 1ll) / (divisor.value.back() + 1ll));
+    remainder = mul_long_short(remainder, k);
+    divisor = mul_long_short(divisor, k);
+    //~~~
+
     remainder.value.push_back(0);
     size_t pref_len = divisor.length() + 1;
     size_t dividend_len = remainder.length();
@@ -103,12 +107,54 @@ big_integer &big_integer::operator/=(const big_integer &rhs) {
             remainder.value.pop_back();
     }
 
-    for (size_t i = quotient.size(); i--; )
+    for (size_t i = quotient.size(); i--;)
         res.value.push_back(quotient[i]);
 
-    res.sign = sign | rhs.sign;
+    res.sign = sign ^ rhs.sign;
     res.normalise();
     return *this = res;
+}
+
+///for long division:
+big_integer big_integer::mul_long_short(big_integer const & a, uit const q_k) {
+    big_integer res;
+    if (q_k == 0)
+        return res;
+    res.resize(a.length() + 1);
+    for (size_t i = 0; i < a.length(); ++i) {
+        uint64_t mul = uint64_t(a[i]) * q_k,
+                buf = (mul & UINT32_MAX) + res[i];
+        res[i] = buf;
+        res[i + 1] += uint64_t((mul >> 31 >> 1)) + (buf >> 31 >> 1);
+    }
+    res.normalise();
+    return res;
+}
+
+bool big_integer::prefix_compare(big_integer const & r, big_integer const & qd, size_t const pref_len) {
+    size_t start = r.length() - pref_len;
+    for (int i = static_cast<int>(r.length() - 1), j = static_cast<int>(pref_len - 1); i >= start && j >= 0; --i, --j) {
+        uit qd_digit = (j < qd.length() ? qd[j] : 0);
+        if (r[i] != qd_digit)
+            return r[i] > qd_digit;
+    }
+    return true;
+}
+
+void big_integer::prefix_sub(big_integer & r, big_integer const &qd, size_t const pref_len) { //pref_len = m + 1, m - size of divisor
+    size_t start = r.length() - pref_len;
+    bool borrow = false;
+    for (size_t i = 0; i < pref_len; ++i) {
+        uit qd_digit = (i < qd.length() ? qd[i] : 0);
+        uit sub = r[start + i] - qd_digit - borrow;
+        borrow = r[start + i] < qd_digit + borrow;
+        r[start + i] = sub;
+    }
+}
+
+uit big_integer::trial(big_integer const & remainder, big_integer const & divisor) {
+    uint64_t a = (static_cast<uint64_t>(remainder.value.back()) << 31 << 1) | remainder[remainder.length() - 2];
+    return std::min(static_cast<uit>(a / divisor.value.back()), UINT32_MAX);
 }
 
 big_integer &big_integer::operator%=(const big_integer &rhs) {
@@ -351,49 +397,7 @@ int8_t big_integer::cmp(big_integer const& a, big_integer const& b) {
         return absCmp;
 }
 
-///for long division:
-big_integer big_integer::mul_long_short(big_integer const & divisor, uit const q_k) {
-    big_integer res;
-    if (q_k == 0)
-        return res;
-    res.resize(divisor.length() + 1);
-    for (size_t i = 0; i < divisor.length(); ++i) {
-        uint64_t mul = uint64_t(divisor[i]) * q_k,
-                buf = (mul & UINT32_MAX) + res[i];
-        res[i] = buf;
-        res[i + 1] += (mul >> 31 >> 1) + (buf >> 31 >> 1);
-    }
-    //res.normalise();
-    return res;
-}
-
-bool big_integer::prefix_compare(big_integer const & r, big_integer const & qd, size_t const pref_len) {
-    size_t start = r.length() - pref_len;
-    for (int i = static_cast<int>(r.length() - 1); i >= start; --i) {
-        uit qd_digit = (i < qd.length() ? qd[i] : 0);
-        if (r[i] > qd_digit)
-            return true;
-        if (r[i] < qd_digit)
-            return false;
-    }
-    return true;
-}
-
-void big_integer::prefix_sub(big_integer & r, big_integer const &qd, size_t const pref_len) { //pref_len = m + 1, m - size of divisor
-    size_t start = r.length() - pref_len;
-    bool borrow = false;
-    for (size_t i = 0; i < pref_len; ++i) {
-        uit qd_digit = (i < qd.length() ? qd[i] : 0);
-        uit sub = r[start + i] - qd_digit - borrow;
-        borrow = r[start + i] < qd_digit + borrow;
-        r[start + i] = sub;
-    }
-}
-
-uit big_integer::trial(big_integer const & remainder, big_integer const & divisor) {
-    uint64_t a = (static_cast<uint64_t>(remainder.value.back()) << 31 << 1) | remainder[remainder.length() - 2];
-    return std::min(static_cast<uit>(a / divisor.value.back()), UINT32_MAX);
-}
+//here
 
 uit big_integer::to_uint32(big_integer const & a) {
     if (a.is_zero())
@@ -484,8 +488,10 @@ bool operator>=(big_integer const& a, big_integer const& b)
 
 std::string to_string(big_integer const& a)
 {
-    big_integer temp(a);
     std::string res;
+    if (a.is_zero())
+        return res += '0';
+    big_integer temp(a);
     while (!temp.is_zero()) {
         res.push_back(static_cast<char>(big_integer::to_uint32(temp % 10) + '0'));
         temp /= 10;
