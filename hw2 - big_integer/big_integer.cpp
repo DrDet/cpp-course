@@ -136,8 +136,8 @@ void big_integer::mul_long_short(big_integer & res, big_integer const & a, uit c
 
 bool big_integer::prefix_compare(big_integer const & r, big_integer const & qd, size_t const pref_len) {
     size_t start = r.length() - pref_len;
-    for (int i = static_cast<int>(r.length() - 1), j = static_cast<int>(pref_len - 1); i >= start && j >= 0; --i, --j) {
-        uit qd_digit = (j < qd.length() ? qd[j] : 0);
+    for (int i = static_cast<int>(r.length() - 1), j = static_cast<int>(pref_len - 1); i >= int(start) && j >= 0; --i, --j) {
+        uit qd_digit = (j < int(qd.length()) ? qd[j] : 0);
         if (r[i] != qd_digit)
             return r[i] > qd_digit;
     }
@@ -249,7 +249,7 @@ big_integer& big_integer::operator>>=(int rhs)
         add |= value[rhs >> 31 >> 1] & ((1 << shift) - 1);
     }
     int shift = rhs >> 5;
-    if (shift >= length()) {
+    if (shift >= int(length())) {
         value.resize(0);
         sign = false;
         return *this;
