@@ -26,7 +26,7 @@ private:
     ///~~~~~~~~~~~~~~~~~~~~~~~~~
 
     ///for long division:
-    static big_integer mul_long_short(big_integer const & a, uit const q_k);
+    static void mul_long_short(big_integer & res, big_integer const & a, uit const q_k);
     static bool prefix_compare(big_integer const & r, big_integer const & qd, size_t const pref_len);
     static void prefix_sub(big_integer & r, big_integer const & qd, size_t const pref_len);
     static uit trial(big_integer const & remainder, big_integer const & divisor);
