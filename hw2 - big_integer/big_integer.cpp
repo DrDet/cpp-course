@@ -86,7 +86,6 @@ big_integer &big_integer::operator/=(const big_integer &rhs) {
 
     big_integer remainder(*this);
     big_integer divisor(rhs);
-    vector<uit> quotient;
 
     //normalisation
     uint32_t const k = static_cast<uint32_t>((UINT32_MAX + 1ll) / (divisor.value.back() + 1ll));
@@ -97,22 +96,21 @@ big_integer &big_integer::operator/=(const big_integer &rhs) {
     remainder.value.push_back(0);
     size_t pref_len = divisor.length() + 1;
     size_t dividend_len = remainder.length();
+    res.value.resize(dividend_len - pref_len + 1);
     big_integer qd;
     uit quotient_digit;
-    for (size_t i = pref_len; i <= dividend_len; ++i) {
+    for (size_t i = pref_len, j = res.value.size() - 1; i <= dividend_len; ++i, --j) {
         quotient_digit = trial(remainder, divisor);
         mul_long_short(qd, divisor, quotient_digit);
         while (!prefix_compare(remainder, qd, pref_len)) {
             quotient_digit--;
             mul_long_short(qd, divisor, quotient_digit);
         }
-        quotient.push_back(quotient_digit);
+        res.value[j] = quotient_digit;
         prefix_sub(remainder, qd, pref_len);
         if (remainder.value.back() == 0)
             remainder.value.pop_back();
     }
-    for (size_t i = quotient.size(); i--;)
-        res.value.push_back(quotient[i]);
 
     res.sign = sign ^ rhs.sign;
     res.normalise();
@@ -135,9 +133,10 @@ void big_integer::mul_long_short(big_integer & res, big_integer const & a, uit c
 }
 
 bool big_integer::prefix_compare(big_integer const & r, big_integer const & qd, size_t const pref_len) {
-    size_t start = r.length() - pref_len;
-    for (int i = static_cast<int>(r.length() - 1), j = static_cast<int>(pref_len - 1); i >= int(start) && j >= 0; --i, --j) {
-        uit qd_digit = (j < int(qd.length()) ? qd[j] : 0);
+    int start = static_cast<int>(r.length() - pref_len);
+    uit qd_digit;
+    for (int i = static_cast<int>(r.length() - 1), j = static_cast<int>(pref_len - 1); i >= start; --i, --j) {
+        qd_digit = (j < int(qd.length()) ? qd[j] : 0);
         if (r[i] != qd_digit)
             return r[i] > qd_digit;
     }
@@ -147,9 +146,10 @@ bool big_integer::prefix_compare(big_integer const & r, big_integer const & qd, 
 void big_integer::prefix_sub(big_integer & r, big_integer const &qd, size_t const pref_len) { //pref_len = m + 1, m - size of divisor
     size_t start = r.length() - pref_len;
     bool borrow = false;
+    uit qd_digit, sub;
     for (size_t i = 0; i < pref_len; ++i) {
-        uit qd_digit = (i < qd.length() ? qd[i] : 0);
-        uit sub = r[start + i] - qd_digit - borrow;
+        qd_digit = (i < qd.length() ? qd[i] : 0);
+        sub = r[start + i] - qd_digit - borrow;
         borrow = r[start + i] < qd_digit + borrow;
         r[start + i] = sub;
     }
