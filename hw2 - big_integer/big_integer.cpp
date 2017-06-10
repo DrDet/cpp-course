@@ -120,7 +120,7 @@ big_integer &big_integer::operator/=(const big_integer &rhs) {
 ///for long division:
 void big_integer::mul_long_short(big_integer & res, big_integer const & a, uit const q_k) {
     size_t n = a.length();
-    res.resize(n + 1);
+    res.value.resize(n + 1);
     uint64_t mul, buf, carry = 0;
     for (size_t i = 0; i < n; ++i) {
         mul = uint64_t(a[i]) * q_k;
@@ -501,6 +501,6 @@ std::string to_string(big_integer const& a)
     }
     if (a.sign)
         res.push_back('-');
-   std::reverse(res.begin(), res.end());
+    std::reverse(res.begin(), res.end());
     return res;
 }
