@@ -1,6 +1,7 @@
 #include "big_integer.h"
 #include <stdexcept>
 #include <algorithm>
+#include <cmath>
 
 big_integer::big_integer() : sign(false) {
 
@@ -10,11 +11,11 @@ big_integer::big_integer(big_integer const &other) : value(other.value), sign(ot
 
 big_integer::big_integer(int a) {
     if (a != 0)
-        value.push_back(abs(1ll * a));
+        value.push_back(std::abs(1ll * a));
     sign = (a < 0);
 }
 
-big_integer::big_integer(const std::string &str) {
+big_integer::big_integer(const std::string &str) : sign(false) {
     for (size_t i = (str[0] == '-' ? 1 : 0); i < str.length(); ++i)
         *this = *this * 10 + static_cast<int>(str[i] - '0');
     sign = (str[0] == '-');
@@ -42,7 +43,7 @@ big_integer &big_integer::operator+=(const big_integer &rhs) {
     if (!l.is_zero()) {
         l.sign = static_cast<bool>(l.value.back() >> 31);   //the last digit is non-zero!!!
         if (l.sign) {
-            l = l.invert().incAbs();                          //convertion from complementation2 to sign-bit
+            l = l.invert().incAbs();                          //conversion from complementation2 to sign-bit
         }
         l.normalise();
     }
@@ -399,8 +400,6 @@ int8_t big_integer::cmp(big_integer const& a, big_integer const& b) {
     else
         return absCmp;
 }
-
-//here
 
 uit big_integer::to_uint32(big_integer const & a) {
     if (a.is_zero())
