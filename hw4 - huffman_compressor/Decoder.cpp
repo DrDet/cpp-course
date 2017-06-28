@@ -14,7 +14,7 @@ Decoder::Decoder() : root(0) {
         tree[i] = make_pair(-1, -1);
         parent[i] = -1;
     }
-};
+}
 
 void Decoder::decode_tree(vector<byte> const &buf) {
     size_t bits_steps_size = to_uint64(buf, 0);
@@ -55,7 +55,7 @@ void Decoder::decode_tree(vector<byte> const &buf) {
     }
     byte_idx++;
     assert(lists_vidx.size() == buf.size() - byte_idx);
-    for (int i = byte_idx, j = 0; i < buf.size(); ++i, ++j) {
+    for (int i = byte_idx, j = 0; static_cast<size_t>(i) < buf.size(); ++i, ++j) {
         list_data[lists_vidx[j]] = buf[i];
     }
 }

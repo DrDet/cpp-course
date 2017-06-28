@@ -7,9 +7,6 @@
 
 #include "init_.h"
 
-#include <iostream>
-using std::cerr;
-
 class Decoder {
 private:
     vidx_t root;
@@ -27,18 +24,6 @@ public:
 
     void decode_tree(vector<byte> const & buf);
     vector<byte> decode_block(vector <byte> const & block);
-
-    void print_tree(int v) {
-        cerr << v << "\n" << tree[v].first << "\n"
-                  << tree[v].second << "\n";
-        if (tree[v].first == -1 && tree[v].second == -1) {
-            cerr << "this is list: " << int(list_data[v]) << " " << list_data[v] << "\n~~~~~~~~~~~~~~\n";
-            return;
-        }
-        cerr << "~~~~~~~~~~~~~~\n";
-        print_tree(tree[v].first);
-        print_tree(tree[v].second);
-    }
 };
 
 #endif //HUFFMAN_DEBUG_DECODER_H

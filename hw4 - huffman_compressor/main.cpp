@@ -2,7 +2,6 @@
 #include <fstream>
 #include <cstring>
 #include <stdexcept>
-#include <cassert>
 
 #include "huffman_lib.h"
 
@@ -10,19 +9,12 @@ const size_t BLOCK_SIZE = 128000;
 
 using std::runtime_error;
 using std::string;
-using std::cerr; ///DEBUG
-
-void print_block(vector <byte> const & x) {
-//    for (size_t i = 0; i < x.size(); ++i)
-//        cerr << int(x[i]) << " ";
-//    cerr << std::endl;
-}
 
 void read_block(vector <byte>& block, vector<byte>& init_block_size, std::ifstream& in) {
     in.read((char *) init_block_size.data(), 8);
     size_t block_size = Decoder::get_block_size(init_block_size);
 
-    if (in.gcount() != 0 && block_size <= 8 || block_size > 32 * BLOCK_SIZE)
+    if ((in.gcount() != 0 && block_size <= 8) || block_size > 32 * BLOCK_SIZE)
         throw runtime_error("Decoding trial has failed - input file is incorrect");
 
     block.resize(block_size);
