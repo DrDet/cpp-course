@@ -86,7 +86,7 @@ int main(int argc, char ** argv) {
             throw runtime_error("Incorrect operation");
         }
     } catch (runtime_error& e) {
-        std::cout << e.what();
+        std::cout << e.what() << std::endl;
     }
     return 0;
 }
