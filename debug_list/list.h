@@ -131,13 +131,13 @@ public:
         assert(pos.is_valid && first.is_valid && last.is_valid && first.owner == last.owner);
         if (first == last)
             return;
-        const_iterator it(first);
-        while (it != last) {
+        for (auto it = first; it != last; ++it) {
             if (it.cur_node == nullptr || it.cur_node == pos.cur_node)
                 assert(false); ///assert(first <= last) && !pos_between(first, last)
+        }
+        for (auto it = first; it != last; ++it) {
             for (size_t i = 0; i < it.cur_node->v_it.size(); ++i)
                 it.cur_node->v_it[i]->set_owner(this);
-            ++it;
         }
 
         last.cur_node->prev->next = pos.cur_node;
@@ -182,14 +182,16 @@ void swap(list<T>& a, list<T>& b) {
 template <typename T>
 struct list<T>::node
 {
+    static const size_t MAX_IT_CNT = 10;
+
     T data;
     node* next;
     node* prev;
 
     vector<typename list<T>::iterator_base*> v_it;
 
-    node() : next(nullptr), prev(nullptr) { };
-    node(node const & other) : data(other.data), next(nullptr), prev(nullptr), v_it(0) { }
+    node() : next(nullptr), prev(nullptr) { v_it.reserve(MAX_IT_CNT); };
+    node(node const & other) : data(other.data), next(nullptr), prev(nullptr) { v_it.reserve(MAX_IT_CNT); }
 
     void invalidate_all_its() {
         for (size_t i = 0; i < v_it.size(); ++i)
@@ -202,6 +204,8 @@ struct list<T>::node
     }
 
     void add_it(iterator_base * x) {
+        if (v_it.size() + 1 > v_it.capacity())
+            assert(false);          ///too many iterators
         v_it.push_back(x);
     }
 
