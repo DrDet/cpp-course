@@ -103,7 +103,17 @@ public:
         return head->data;
     };
 
+    T const & front() const {
+        assert(!empty());
+        return head->data;
+    };
+
     T& back() {
+        assert(!empty());
+        return dummy->prev->data;
+    }
+
+    T const & back() const {
         assert(!empty());
         return dummy->prev->data;
     }
