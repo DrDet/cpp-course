@@ -10,8 +10,6 @@
 #include <cassert>
 #include <type_traits>
 
-using std::vector;
-
 template <typename T>
 class list {
 private:
@@ -35,12 +33,8 @@ public:
 
     list(list const & other) : list()
     {
-        try {
-            for (auto it = other.begin(); it != other.end(); ++it)
-                push_back(*it);
-        } catch(...) {
-            this->~list();
-        }
+        for (auto it = other.begin(); it != other.end(); ++it)
+            push_back(*it);
     }
 
     list& operator=(list const & other) ///инвалидирует итераторы на старый
@@ -199,7 +193,7 @@ struct list<T>::node
     node* next;
     node* prev;
 
-    vector<typename list<T>::iterator_base*> v_it;
+    std::vector<typename list<T>::iterator_base*> v_it;
 
     node() : next(nullptr), prev(nullptr) { v_it.reserve(MAX_IT_CNT); };
     node(node const & other) : data(other.data), next(nullptr), prev(nullptr) { v_it.reserve(MAX_IT_CNT); }
@@ -264,6 +258,7 @@ struct list<TT>::any_iterator : iterator_base {
         rhs.cur_node->add_it(this);
         cur_node = rhs.cur_node;
         owner = rhs.owner;
+        return *this;
     }
 
     any_iterator(list const * owner, node* cur_node) : owner(owner), cur_node(cur_node), is_valid(true) {
