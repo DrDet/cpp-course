@@ -55,8 +55,9 @@ public:
     {
         node* cur = head;
         while (cur) {
-            cur->~node(); ///here
-            cur = cur->next;
+            node* ptr_next = cur->next;
+            delete cur;
+            cur = ptr_next;
         }
     }
 
