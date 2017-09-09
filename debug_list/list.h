@@ -141,8 +141,13 @@ public:
                 assert(false); ///assert(first <= last) && !pos_between(first, last)
         }
         for (auto it = first; it != last; ++it) {
-            for (size_t i = 0; i < it.cur_node->v_it.size(); ++i)
-                it.cur_node->v_it[i]->set_owner(this);
+//            for (size_t i = 0; i < it.cur_node->v_it.size(); ++i)/
+//                it.cur_node->v_it[i]->set_owner(this);
+            typename list<T>::iterator_base* cur = it.cur_node->it_head;
+            while (cur != nullptr) {
+                cur->set_owner(this);
+                cur = cur->it_next;
+            }
         }
 
         last.cur_node->prev->next = pos.cur_node;
@@ -187,20 +192,24 @@ void swap(list<T>& a, list<T>& b) {
 template <typename T>
 struct list<T>::node
 {
-    static const size_t MAX_IT_CNT = 10;
-
     T data;
     node* next;
     node* prev;
 
-    std::vector<typename list<T>::iterator_base*> v_it;
+//    std::vector<typename list<T>::iterator_base*> v_it;
+    typename list<T>::iterator_base* it_head;
 
-    node() : next(nullptr), prev(nullptr) { v_it.reserve(MAX_IT_CNT); };
-    node(node const & other) : data(other.data), next(nullptr), prev(nullptr) { v_it.reserve(MAX_IT_CNT); }
+    node() : next(nullptr), prev(nullptr), it_head(nullptr) { };
+    node(node const & other) : data(other.data), next(nullptr), prev(nullptr), it_head(nullptr) { }
 
     void invalidate_all_its() {
-        for (size_t i = 0; i < v_it.size(); ++i)
-            v_it[i]->invalidate();
+//        for (size_t i = 0; i < v_it.size(); ++i)
+//            v_it[i]->invalidate();
+        typename list<T>::iterator_base* cur = it_head;
+        while (cur != nullptr) {
+            cur->invalidate();
+            cur = cur->it_next;
+        }
     }
 
     ~node()
@@ -209,25 +218,44 @@ struct list<T>::node
     }
 
     void add_it(iterator_base * x) {
-        if (v_it.size() + 1 > v_it.capacity())
-            assert(false);          ///too many iterators
-        v_it.push_back(x);
+//        v_it.push_back(x);
+        x->it_next = it_head;
+        it_head = x;
     }
 
     void delete_it(iterator_base * x) {
-        size_t idx;
-        for (size_t i = 0; i < v_it.size(); ++i) {
-            if (v_it[i] == x) {
-                idx = i;
+//        size_t idx;
+//        for (size_t i = 0; i < v_it.size(); ++i) {
+//            if (v_it[i] == x) {
+//                idx = i;
+//                break;
+//            }
+//        }
+//        v_it.erase(v_it.begin() + idx);
+        typename list<T>::iterator_base* cur = it_head;
+        typename list<T>::iterator_base* prev = nullptr;
+        while (cur != nullptr) {
+            if (cur == x) {
+                if (prev != nullptr) {
+                    prev->it_next = cur->it_next;
+                } else {
+                    it_head = cur->it_next;
+                    cur->it_next = nullptr;
+                }
                 break;
             }
+            prev = cur;
+            cur = cur->it_next;
         }
-        v_it.erase(v_it.begin() + idx);
     }
 };
 
 template <typename T>
 struct list<T>::iterator_base {
+    iterator_base* it_next;
+
+    iterator_base(iterator_base* ptr) : it_next(ptr) { }
+
     virtual void set_owner(list const *) = 0;
     virtual void invalidate() = 0;
     virtual ~iterator_base() { }
@@ -239,15 +267,15 @@ struct list<TT>::any_iterator : iterator_base {
     node* cur_node;
     bool is_valid;
 
-    any_iterator() : owner(nullptr), cur_node(nullptr), is_valid(false) { };
+    any_iterator() : iterator_base(nullptr), owner(nullptr), cur_node(nullptr), is_valid(false) { };
 
-    any_iterator(any_iterator const & other) : owner(other.owner), cur_node(other.cur_node), is_valid(other.is_valid) {
+    any_iterator(any_iterator const & other) : iterator_base(nullptr), owner(other.owner), cur_node(other.cur_node), is_valid(other.is_valid) {
         assert(other.is_valid);
         cur_node->add_it(this);
     }
 
     template <typename U>
-    any_iterator(any_iterator<U> const & other, typename std::enable_if<std::is_const<T>::value && !std::is_const<U>::value>::type * = nullptr) : owner(other.owner), cur_node(other.cur_node), is_valid(other.is_valid) {
+    any_iterator(any_iterator<U> const & other, typename std::enable_if<std::is_const<T>::value && !std::is_const<U>::value>::type * = nullptr) : iterator_base(nullptr), owner(other.owner), cur_node(other.cur_node), is_valid(other.is_valid) {
         assert(other.is_valid);
         cur_node->add_it(this);
     }
@@ -261,7 +289,7 @@ struct list<TT>::any_iterator : iterator_base {
         return *this;
     }
 
-    any_iterator(list const * owner, node* cur_node) : owner(owner), cur_node(cur_node), is_valid(true) {
+    any_iterator(list const * owner, node* cur_node) : iterator_base(nullptr), owner(owner), cur_node(cur_node), is_valid(true) {
         cur_node->add_it(this);
     }
 
