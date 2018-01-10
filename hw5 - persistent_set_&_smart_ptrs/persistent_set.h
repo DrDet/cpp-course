@@ -5,10 +5,12 @@
 #define PERSISTENT_SET_PERSISTENT_SET_H
 
 #include <memory>
+#include "smart_pointers/shared_ptr.h"
+#include "smart_pointers/linked_ptr.h"
 
 using std::get;
 
-template <typename T, template <typename> class smart_pointer = std::shared_ptr>
+template <typename T, template <typename> class smart_pointer = linked_ptr>
 class persistent_set
 {
 private:
@@ -22,7 +24,7 @@ private:
     //returns <v, parent_v, new_root>
     // v - node, which downhill stops at
     std::tuple<smart_pointer<Node_base>, smart_pointer<Node_base>, smart_pointer<Node_base>>
-    downhill(smart_pointer<Node_base> v, T val, bool copy = false, smart_pointer<Node_base> caller = nullptr)
+    downhill(smart_pointer<Node_base> v, T val, bool copy = false, smart_pointer<Node_base> caller = nullptr) const
     {
         smart_pointer<Node_base> cur = v;
         if (copy) {
@@ -66,24 +68,32 @@ private:
     }
 
     void remove_light(smart_pointer<Node_base>& v, smart_pointer<Node_base>& parent_v) {
-        (parent_v->l == v ? parent_v->l : parent_v->r) = (v->l ? v->l : v->r);
+        (parent_v->l.get() == v.get() ? parent_v->l : parent_v->r) = (v->l ? v->l : v->r);
     }
 
 public:
     struct iterator;
 
-    persistent_set() {
-        root = smart_pointer<Node_base>(new Node_base());
+    persistent_set() : root(new Node_base()) {}
+
+    persistent_set(persistent_set const& other) noexcept : root(other.root) {}
+
+    persistent_set(persistent_set&& other) noexcept : root(other.root) {
+        other.root = nullptr;
     }
 
-    persistent_set(persistent_set const& other) : root(other.root) {}
-
-    persistent_set& operator=(persistent_set const& rhs) {
+    persistent_set& operator=(persistent_set const& rhs) noexcept {
         root = rhs.root;
         return *this;
     }
 
-    iterator find(T x) {
+    persistent_set& operator=(persistent_set&& rhs) noexcept {
+        root = rhs.root;
+        rhs.root = nullptr;
+        return *this;
+    }
+
+    iterator find(T x) const noexcept {
         auto tmp = downhill(root, x);
         if (!get<0>(tmp)->is_dummy() && dynamic_cast<Node*>(get<0>(tmp).get())->val == x)
             return iterator(this, get<0>(tmp).get());
@@ -106,6 +116,7 @@ public:
     };
 
     void erase(iterator it) {
+        assert(dynamic_cast<Node*>(it.ptr));
         auto tmp = downhill(root, dynamic_cast<Node*>(it.ptr)->val, true);
         root = get<2>(tmp);
         smart_pointer<Node_base>& v = get<0>(tmp);
@@ -117,24 +128,27 @@ public:
             T next = dynamic_cast<Node*>(get_next(v.get()))->val;
             auto down_to_next = downhill(v->r, next, true, v);
             v->r = get<2>(down_to_next);
-            dynamic_cast<Node*>(v.get())->val = next;
+            dynamic_cast<Node*>(v.get())->val = std::move(next);
             remove_light(get<0>(down_to_next), get<1>(down_to_next));
         }
     }
 
-    iterator begin() const {
+    iterator begin() const noexcept {
         node_ptr cur = root.get();
-        for (; cur->l.get(); cur = cur->l.get());
+        for (; cur->l; cur = cur->l.get());
         return iterator(this, cur);
     }
 
-    iterator end() const {
+    iterator end() const noexcept {
         return iterator(this, root.get());
     }
 
+    friend void swap(persistent_set& a, persistent_set& b) noexcept {
+        std::swap(a.root, b.root);
+    }
 };
 
-template<typename T, template <typename> class smart_pointer = std::shared_ptr>
+template<typename T, template <typename> class smart_pointer>
 struct persistent_set<T, smart_pointer>::Node_base
 {
     smart_pointer<Node_base> l;
@@ -146,14 +160,17 @@ struct persistent_set<T, smart_pointer>::Node_base
     virtual bool is_dummy() {
         return true;
     }
+
+    virtual ~Node_base() {}
 };
 
-template<typename T, template <typename> class smart_pointer = std::shared_ptr>
+template<typename T, template <typename> class smart_pointer>
 struct persistent_set<T, smart_pointer>::Node : Node_base
 {
     T val;
 
     Node(Node const & other) : Node_base(other), val(other.val) {}
+
     Node(T val) : Node_base(), val(val) {}
 
     bool is_dummy() {
@@ -161,46 +178,51 @@ struct persistent_set<T, smart_pointer>::Node : Node_base
     }
 };
 
-template<typename T, template <typename> class smart_pointer = std::shared_ptr>
+template<typename T, template <typename> class smart_pointer>
 struct persistent_set<T, smart_pointer>::iterator
 {
     persistent_set const* owner;
     node_ptr ptr;
 
-    iterator(persistent_set const* owner, node_ptr ptr) : owner(owner), ptr(ptr) {}
+    iterator(persistent_set const* owner, node_ptr ptr) noexcept : owner(owner), ptr(ptr) {}
 
-    T const& operator*() const {
+    T const& operator*() const noexcept {
         return dynamic_cast<Node*>(ptr)->val;
     }
 
-    iterator& operator++() {
+    iterator& operator++() noexcept {
         ptr = owner->get_next(ptr);
         return *this;
     }
 
-    iterator& operator--() {
+    iterator& operator--() noexcept {
         ptr = owner->get_prev(ptr);
         return *this;
     }
 
-    iterator operator++(int) {
+    iterator operator++(int) noexcept {
         iterator tmp(*this);
         ++(*this);
         return tmp;
     }
 
-    iterator operator--(int) {
+    iterator operator--(int) noexcept {
         iterator tmp(*this);
         --(*this);
         return tmp;
     }
 
-    friend bool operator==(iterator const & a, iterator const & b) {
+    friend bool operator==(iterator const & a, iterator const & b) noexcept {
         return a.ptr == b.ptr;
     }
 
-    friend bool operator!=(iterator const & a, iterator const & b) {
+    friend bool operator!=(iterator const & a, iterator const & b) noexcept {
         return a.ptr != b.ptr;
+    }
+
+    friend void swap(iterator& a, iterator& b) noexcept {
+        std::swap(a.owner, b.owner);
+        std::swap(a.ptr, b.ptr);
     }
 };
 #endif //PERSISTENT_SET_PERSISTENT_SET_H

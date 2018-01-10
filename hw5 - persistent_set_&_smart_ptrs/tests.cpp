@@ -1,15 +1,43 @@
 #include "gtest/gtest.h"
 #include "persistent_set.h"
 #include <vector>
-using namespace std;
+#include <crtdbg.h>
+#include"smart_pointers/shared_ptr.h"
+#include"smart_pointers/linked_ptr.h"
 
-template <typename T>
-vector<T> vec(persistent_set<T> const& s) {
+using std::vector;
+using std::set;
+
+template <typename T, template <typename> class S>
+vector<T> vec(persistent_set<T, S> const& s) {
 	vector<T> res;
 	for (auto it = s.begin(); it != s.end(); ++it) {
 		res.push_back(*it);
 	}
 	return res;
+}
+
+TEST(test_linked_ptr, copy_null) {
+    _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+    linked_ptr<int> a;
+    linked_ptr<int> b = a;
+    linked_ptr<int> c = a;
+    linked_ptr<int> d = a;
+    linked_ptr<int> e = a;
+
+    linked_ptr<int> f(new int(5));
+    a = f;
+    c = f;
+    f = f;
+    d = f;
+    b = linked_ptr<int>(new int(6));
+    c = b;
+    swap(b, c);
+    f = c;
+    e = f;
+    a = f;
+    d = a;
+    b = f;
 }
 
 TEST(test_set, insert) {
@@ -69,6 +97,7 @@ TEST(test_set, insert_and_copy) {
 	EXPECT_EQ(vector<int>({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 100 }), vec(s));
 	EXPECT_EQ(vector<int>({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }), vec(p));
 }
+
 TEST(test_set, erase0) {
 	persistent_set<int> s;
 	s.insert(4);
@@ -152,6 +181,16 @@ TEST(test_set, erase2) {
 	}
 }
 
+TEST(test_set, decrease_end) {
+    persistent_set<int> s;
+    s.insert(4);
+    s.insert(12);
+    s.insert(1);
+    persistent_set<int>::iterator it = s.end();
+    it--;
+    EXPECT_EQ(12, *it);
+}
+
 TEST(my_tests, basic_ops_and_some_persistence) {
     persistent_set<int> a;
     persistent_set<int> b;
@@ -190,7 +229,7 @@ TEST(my_tests, basic_ops_and_some_persistence) {
     EXPECT_EQ(vector<int>({1, 2, 3, 4, 5, 6}), vec(a));
 }
 
-TEST(my_tests, erase_and_some_persistence) {
+TEST(my_tests, erase_and_some_persistence_and_swap) {
     persistent_set<int> a;
     for (int i = 6; i >= 1; --i) a.insert(i);
     EXPECT_EQ(vector<int>({1, 2, 3, 4, 5, 6}), vec(a));
@@ -205,112 +244,94 @@ TEST(my_tests, erase_and_some_persistence) {
     a.insert(200);
     EXPECT_EQ(vector<int>({3, 6, 200}), vec(a));
     EXPECT_EQ(vector<int>({1, 5, 6, 100}), vec(b));
+    swap(a, b);
+    EXPECT_EQ(vector<int>({3, 6, 200}), vec(b));
+    EXPECT_EQ(vector<int>({1, 5, 6, 100}), vec(a));
+    auto x = ++++a.begin();
+    auto y = ----b.end();
+    EXPECT_EQ(true, *x == *y && *x == 6);
+    swap(x, y);
+    EXPECT_EQ(true, ++++x == b.end());
+    EXPECT_EQ(true, ++++y == a.end());
 }
 
-//struct smth {
-//	int var;
-//	smth(int var) : var(var) {}
-//	smth() = delete;
-//	smth(smth const& rhs) {
-//		var = rhs.var;
-//	}
-//	smth(smth&& rhs) noexcept {
-//		var = rhs.var;
-//	}
-//	bool operator<(smth const& rhs) const {
-//		return var < rhs.var;
-//	}
-//	bool operator==(smth const& rhs) const {
-//		return var == rhs.var;
-//	}
-//};
+struct smth {
+	int var;
+	smth(int var) : var(var) {}
+	smth() = delete;
+	smth(smth const& rhs) {
+		var = rhs.var;
+	}
+	smth(smth&& rhs) noexcept {
+		var = rhs.var;
+	}
 
-//TEST(test_set, smth) {
-//	persistent_set<smth> s;
-//	s.insert(smth(2));
-//	s.insert(smth(1));
-//	s.erase(s.find(2));
-//	s.insert(smth(5));
-//	EXPECT_EQ(vector<smth>({1, 5}), vec(s));
-//	persistent_set<smth> p(s);
-//	p.insert(smth(0));
-//	EXPECT_EQ(vector<smth>({ 1, 5 }), vec(s));
-//	EXPECT_EQ(vector<smth>({ 0, 1, 5 }), vec(p));
-//	persistent_set<smth> q(s);
-//	s.insert(smth(8));
-//	EXPECT_EQ(vector<smth>({ 1, 5 }), vec(q));
-//	q = s;
-//	EXPECT_EQ(vector<smth>({ 1, 5, 8 }), vec(s));
-//	EXPECT_EQ(vector<smth>({ 1, 5, 8 }), vec(q));
-//	s.erase(s.find(8));
-//	EXPECT_EQ(vector<smth>({ 1, 5 }), vec(s));
-//	EXPECT_EQ(vector<smth>({ 1, 5, 8 }), vec(q));
-//}
+	smth& operator=(smth&& rhs) noexcept {
+		var = rhs.var;
+		return *this;
+	}
 
-//TEST(test_linked_ptr, copy_null) {
-//	_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
-//	linked_ptr<int> a;
-//	linked_ptr<int> b = a;
-//	linked_ptr<int> c = a;
-//	linked_ptr<int> d = a;
-//	linked_ptr<int> e = a;
-//
-//	linked_ptr<int> f(new int(5));
-//	a = f;
-//	c = f;
-//	f = f;
-//	d = f;
-//	b = linked_ptr<int>(new int(6));
-//	c = b;
-//	b.swap(c);
-//	f = c;
-//	e = f;
-//	a = f;
-//	d = a;
-//	b = f;
-//}
+	bool operator<(smth const& rhs) const {
+		return var < rhs.var;
+	}
+	bool operator==(smth const& rhs) const {
+		return var == rhs.var;
+	}
+};
 
-TEST(test_set, decrease_end) {
-	persistent_set<int> s;
-	s.insert(4);
-	s.insert(12);
-	s.insert(1);
-	persistent_set<int>::iterator it = s.end();
-	it--;
-	EXPECT_EQ(12, *it);
+TEST(test_set, smth) {
+    persistent_set<smth> s;
+    s.insert(smth(2));
+    s.insert(smth(1));
+    s.erase(s.find(2));
+    s.insert(smth(5));
+    EXPECT_EQ(vector<smth>({1, 5}), vec(s));
+    persistent_set<smth> p(s);
+    p.insert(smth(0));
+    EXPECT_EQ(vector<smth>({ 1, 5 }), vec(s));
+    EXPECT_EQ(vector<smth>({ 0, 1, 5 }), vec(p));
+    persistent_set<smth> q(s);
+    s.insert(smth(8));
+    EXPECT_EQ(vector<smth>({ 1, 5 }), vec(q));
+    q = s;
+    EXPECT_EQ(vector<smth>({ 1, 5, 8 }), vec(s));
+    EXPECT_EQ(vector<smth>({ 1, 5, 8 }), vec(q));
+    s.erase(s.find(8));
+    EXPECT_EQ(vector<smth>({ 1, 5 }), vec(s));
+    EXPECT_EQ(vector<smth>({ 1, 5, 8 }), vec(q));
 }
 
-//template < typename Set >
-//std::vector < std::vector < int > > test(std::string const& msg) {
-//	int tt = clock();
-//	srand(100);
-//	std::vector < Set > ss(256);
-//	for (int i = 0; i < 1000000; ++i) {
-//		int r = rand() & 7;
-//		if (r == 0) {
-//			int j = rand() & 255;
-//			ss[j] = ss[rand() & 255];
-//		} else if (r <= 3) {
-//			int j = rand() & 255;
-//			ss[j].insert(rand() & 16383);
-//		} else {
-//			int j = rand() & 255;
-//			auto it = ss[j].find(rand() & 16383);
-//			if (it != ss[j].end())
-//				ss[j].erase(it);
-//		}
-//	}
-//	std::vector < std::vector < int > > a(256);
-//	for (int i = 0; i < 256; ++i)
-//		for (int x : ss[i])
-//			a[i].push_back(x);
-//	std::cout << msg << " " << 1.*(clock() - tt) / CLOCKS_PER_SEC << "\n";
-//	return a;
-//}
-//
+template < typename Set >
+std::vector < std::vector < int > > test(std::string const& msg) {
+	int tt = clock();
+	srand(100);
+	std::vector < Set > ss(256);
+	for (int i = 0; i < 1000000; ++i) {
+		int r = rand() & 7;
+		if (r == 0) {
+			int j = rand() & 255;
+			ss[j] = ss[rand() & 255];
+		} else if (r <= 3) {
+			int j = rand() & 255;
+			ss[j].insert(rand() & 16383); //4332
+		} else {
+			int j = rand() & 255;
+			auto it = ss[j].find(rand() & 16383);
+			if (it != ss[j].end())
+				ss[j].erase(it);
+		}
+	}
+	std::vector < std::vector < int > > a(256);
+	for (int i = 0; i < 256; ++i)
+		for (int x : ss[i])
+			a[i].push_back(x);
+	std::cout << msg << " " << 1.*(clock() - tt) / CLOCKS_PER_SEC << "\n";
+	return a;
+}
+
 //TEST(test_set, random) {
-//	auto r1 = test<persistent_set<int>>("shared_ptr");
-//	auto r2 = test<persistent_set<int>>("linked_ptr");
+//	auto r1 = test<persistent_set<int, shared_ptr>>("shared_ptr");
+//	auto r2 = test<persistent_set<int, linked_ptr>>("linked_ptr");
 //	EXPECT_EQ(r1, r2);
 //	auto r3 = test<set<int>>("std::set  ");
 //	EXPECT_EQ(r2, r3);
