@@ -10,7 +10,7 @@
 
 using std::get;
 
-template <typename T, template <typename> class smart_pointer = linked_ptr>
+template <typename T, template <typename> class smart_pointer = std::shared_ptr>
 class persistent_set
 {
 private:
