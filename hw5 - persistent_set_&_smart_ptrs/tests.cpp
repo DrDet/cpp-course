@@ -329,10 +329,10 @@ std::vector < std::vector < int > > test(std::string const& msg) {
 	return a;
 }
 
-//TEST(test_set, random) {
-//	auto r1 = test<persistent_set<int, shared_ptr>>("shared_ptr");
-//	auto r2 = test<persistent_set<int, linked_ptr>>("linked_ptr");
-//	EXPECT_EQ(r1, r2);
-//	auto r3 = test<set<int>>("std::set  ");
-//	EXPECT_EQ(r2, r3);
-//}
+TEST(test_set, random) {
+	auto r1 = test<persistent_set<int, shared_ptr>>("shared_ptr");
+	auto r2 = test<persistent_set<int, linked_ptr>>("linked_ptr");
+	EXPECT_EQ(r1, r2);
+	auto r3 = test<set<int>>("std::set  ");
+	EXPECT_EQ(r2, r3);
+}

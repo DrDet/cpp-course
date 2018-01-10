@@ -107,18 +107,7 @@ public:
     }
 
     friend void swap(linked_ptr& a, linked_ptr& b) noexcept {
-        if (&a == &b) return;
-        if (a.next == &b || b.next == &a) {
-            linked_ptr& x = (b.next == &a ? b : a);
-            linked_ptr& y = (b.next == &a ? a : b);
-            if (x.prev) x.prev->next = &y;
-            if (y.next) y.next->prev = &x;
-            x.next = y.next;
-            y.prev = x.prev;
-            x.prev = &y;
-            y.next = &x;
-            return;
-        }
+        if (a.ptr == b.ptr) return;
         std::swap(a.ptr, b.ptr);
         if (a.prev) a.prev->next = &b;
         if (a.next) a.next->prev = &b;
