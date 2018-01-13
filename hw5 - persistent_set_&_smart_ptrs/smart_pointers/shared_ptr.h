@@ -31,7 +31,17 @@ private:
 
 public:
     shared_ptr() noexcept : ptr(nullptr), ref_cnt(nullptr) {}
-    shared_ptr(T* new_ptr) : ptr(new_ptr), ref_cnt(new size_t(1)) {}
+    explicit shared_ptr(T* new_ptr) : ptr(new_ptr) {
+        try
+        {
+            ref_cnt = new size_t(1);
+        }
+        catch (...)
+        {
+            delete ptr;
+            throw;
+        }
+    }
 
     shared_ptr(std::nullptr_t const &) noexcept : shared_ptr() {}
 
@@ -75,7 +85,7 @@ public:
         return *this;
     }
 
-    operator bool() const noexcept {
+    explicit operator bool() const noexcept {
         assert(!ref_cnt || *ref_cnt > 0);
         return ptr != nullptr;
     }

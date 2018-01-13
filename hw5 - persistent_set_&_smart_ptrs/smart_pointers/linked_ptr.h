@@ -43,7 +43,7 @@ private:
     }
 public:
     linked_ptr() noexcept : ptr(nullptr), prev(nullptr), next(nullptr) {}
-    linked_ptr(T* new_ptr) noexcept : ptr(new_ptr), prev(nullptr), next(nullptr) {}
+    explicit linked_ptr(T* new_ptr) noexcept : ptr(new_ptr), prev(nullptr), next(nullptr) {}
 
     linked_ptr(std::nullptr_t const &) noexcept : linked_ptr() {}
 
@@ -86,7 +86,7 @@ public:
         return *this;
     }
 
-    operator bool() const noexcept {
+    explicit operator bool() const noexcept {
         return ptr != nullptr;
     }
 
