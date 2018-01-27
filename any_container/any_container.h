@@ -12,8 +12,8 @@
 #include "any_iterator.h"
 using any_iterator_impl::any_iterator;
 
-constexpr size_t SMALL_SIZE = 64;
-typedef std::aligned_storage<SMALL_SIZE, SMALL_SIZE>::type storage_t;
+constexpr size_t SMALL_SIZE = 8 * sizeof(void*);
+typedef std::aligned_storage<SMALL_SIZE, alignof(void*)>::type storage_t;
 
 template<typename T>
 struct is_small {
